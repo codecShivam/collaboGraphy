@@ -1,6 +1,6 @@
 type Draw = {
   ctx: CanvasRenderingContext2D;
-  currPoint: Point;
+  currentPoint: Point;
   prevPoint: Point | null;
 };
 
