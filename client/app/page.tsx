@@ -1,32 +1,32 @@
 'use client'; // Strict mode
-import { FC, useState, useRef } from 'react'; // Import React hooks
-import { useDraw } from '../hooks/useDraw'; // Import custom hook for drawing on canvas
-import { ChromePicker } from 'react-color'; // Import color picker component
+import { FC, useState, useRef } from 'react'; 
+import { useDraw } from '../hooks/useDraw'; 
+import { ChromePicker } from 'react-color'; 
 
-interface PageProps { } // Define interface for component props
+interface PageProps { } 
 
-const Page: FC<PageProps> = () => { // Define functional component
-  const [linesWidth, setLinesWidth] = useState<number>(5); // State for selected color
-  const [color, setColor] = useState<string>('#000'); // State for selected color
-  const { canvasRef, onMouseDown, clear } = useDraw(drawLine); // Custom hook for drawing on canvas
-  const prevPoint = useRef<Point | null>(null); // Ref for previous point (if any)
+const Page: FC<PageProps> = () => { 
+  const [linesWidth, setLinesWidth] = useState<number>(5); 
+  const [color, setColor] = useState<string>('#000'); 
+  const { canvasRef, onMouseDown, clear } = useDraw(drawLine); 
+  const prevPoint = useRef<Point | null>(null); 
 
   function drawLine({ prevPoint, currentPoint, ctx }: Draw) { // Function for drawing a line
     const { x: currX, y: currY } = currentPoint; // Destructure current point
-    const lineColor = color; // Get selected color
-    const lineWidth = linesWidth; // Set line width
+    const lineColor = color; 
+    const lineWidth = linesWidth;
 
     let startPoint = prevPoint ?? currentPoint; // Set start point to previous point or current point
-    ctx.beginPath(); // Begin new path
-    ctx.lineWidth = lineWidth; // Set line width
-    ctx.strokeStyle = lineColor; // Set line color
+    ctx.beginPath(); 
+    ctx.lineWidth = lineWidth; 
+    ctx.strokeStyle = lineColor; 
     ctx.moveTo(startPoint.x, startPoint.y); // Move to start point
     ctx.lineTo(currX, currY); // Draw line to current point
     ctx.stroke(); // Stroke the line
 
     ctx.fillStyle = lineColor; // Set fill color
     ctx.beginPath(); // Begin new path
-    ctx.arc(startPoint.x, startPoint.y, lineWidth / 2, 0, 2 * Math.PI); // Draw a small circle at start point
+    ctx.arc(startPoint.x, startPoint.y, lineWidth / 2.5, 0, 2 * Math.PI); // Draw a small circle at start point
     ctx.fill(); // Fill the circle
   }
 
