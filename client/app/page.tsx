@@ -1,11 +1,11 @@
-'use client'
+'use client';
 import React, { FC, useEffect, useState } from 'react';
 import { useDraw } from '../hooks/useDraw';
 import { ChromePicker } from 'react-color';
 import { io } from 'socket.io-client';
 import { drawLine } from '../utils/drawLine';
 
-const socket = io('http://localhost:3001');
+const socket = io('https://collabo-graphy.vercel.app'); // Update with your Vercel domain
 
 type DrawLineProps = {
   prevPoint: Point | null;
