@@ -5,7 +5,8 @@ import { ChromePicker } from 'react-color';
 import { io } from 'socket.io-client';
 import { drawLine } from '../utils/drawLine';
 
-const socket = io('http://collabo-graphy.vercel.app'); // Update with your Vercel domain
+// const socket = io('http://localhost:3001'); // Update with your Vercel domain
+const socket = io('http://collabography.vercel.app'); // Update with your Vercel domain
 
 type DrawLineProps = {
   prevPoint: Point | null;
