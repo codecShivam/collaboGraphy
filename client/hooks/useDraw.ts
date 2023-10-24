@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 // Custom hook for drawing on canvas
-export const useDraw = (
-  onDraw: ({ ctx, currentPoint, prevPoint }: Draw) => void
-) => {
+export function useDraw(onDraw: ({ ctx, currentPoint, prevPoint }: Draw) => void) {
   const [mouseDown, setMouseDown] = useState(false); // State for mouse down event
 
   const canvasRef = useRef<HTMLCanvasElement>(null); // Ref for canvas element
@@ -59,4 +57,5 @@ export const useDraw = (
   }, [onDraw]);
 
   return { canvasRef, onMouseDown, clear };
-};
+}
+
