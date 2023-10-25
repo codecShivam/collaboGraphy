@@ -5,16 +5,13 @@ import { ChromePicker } from 'react-color';
 import { io } from 'socket.io-client';
 import { drawLine } from '../utils/drawLine';
 
-// const socket = io('http://localhost:3001'); // Update with your Vercel domain
-const socket = io('http://collabography.vercel.app'); // Update with your Vercel domain
+const socket = io('http://localhost:3001'); // Update with your Vercel domain
+// const socket = io('http://collabography.vercel.app'); // Update with your Vercel domain
 
-type DrawLineProps = {
-  prevPoint: Point | null;
-  currentPoint: Point;
-  color: string;
-};
+
 
 export default function Page() {
+  const [brushWidth, setBrushWidth] = useState<number>(5);
   const [color, setColor] = useState<string>('#000');
   const { canvasRef, onMouseDown, clear } = useDraw(createLine);
 
@@ -38,9 +35,9 @@ export default function Page() {
       };
     });
 
-    socket.on('draw-line', ({ prevPoint, currentPoint, color }: DrawLineProps) => {
+    socket.on('draw-line', ({ prevPoint, currentPoint, color, brushWidth }: DrawLineProps) => {
       if (!ctx) return console.log('no ctx here');
-      drawLine({ prevPoint, currentPoint, ctx, color });
+      drawLine({ prevPoint, currentPoint, ctx, color, brushWidth });
     });
 
     socket.on('clear', clear);
@@ -54,8 +51,8 @@ export default function Page() {
   }, [canvasRef, clear]);
 
   function createLine({ prevPoint, currentPoint, ctx }: Draw) {
-    socket.emit('draw-line', { prevPoint, currentPoint, color });
-    drawLine({ prevPoint, currentPoint, ctx, color });
+    socket.emit('draw-line', { prevPoint, currentPoint, color, brushWidth });
+    drawLine({ prevPoint, currentPoint, ctx, color, brushWidth });
   }
 
   return (
@@ -69,6 +66,8 @@ export default function Page() {
           Clear canvas
         </button>
       </div>
+      <label htmlFor='brush-size'>Brush size</label>
+      <input type='number' className='border border-black rounded-md' onChange={(e) => setBrushWidth(+e.target.value)} />
       <canvas
         ref={canvasRef}
         onMouseDown={onMouseDown}
