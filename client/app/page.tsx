@@ -9,17 +9,16 @@ const socket = io('http://localhost:3001'); // Update with your Vercel domain
 // const socket = io('http://collabography.vercel.app'); // Update with your Vercel domain
 
 export default function Page() {
+  const [canvasBackgroundColor, setCanvasBackgroundColor] = useState<string>('#000');
   const [eraserMode, setEraserMode] = useState(false);
   const [brushWidth, setBrushWidth] = useState<number>(5);
   const [color, setColor] = useState<string>('#000');
   const { canvasRef, onMouseDown, clear } = useDraw(createLine);
 
-
   const toggleEraserMode = () => {
     setEraserMode(!eraserMode);
   };
 
-  
   useEffect(() => {
     const ctx = canvasRef.current?.getContext('2d');
 
@@ -56,7 +55,7 @@ export default function Page() {
   }, [canvasRef, clear]);
 
   function createLine({ prevPoint, currentPoint, ctx }: Draw) {
-    const lineColor = eraserMode ? 'white' : color; // Use white as the eraser color
+    const lineColor = eraserMode ? canvasBackgroundColor : color;
     socket.emit('draw-line', { prevPoint, currentPoint, color: lineColor, brushWidth });
     drawLine({ prevPoint, currentPoint, ctx, color: lineColor, brushWidth });
   }
@@ -72,23 +71,35 @@ export default function Page() {
           Clear canvas
         </button>
       </div>
-      <button
-  type='button'
-  className='p-2 rounded-md border border-black'
-  onClick={toggleEraserMode}
->
-  {eraserMode ? 'Exit Eraser Mode' : 'Eraser Mode'}
-</button>
-      <label htmlFor='brush-size'>Brush size</label>
-      <input type='number' className='border border-black rounded-md' onChange={(e) => setBrushWidth(+e.target.value)} />
+      <div className='flex flex-col gap-14'>
+        <div>
+          <label htmlFor='color'>Choose canvas bg color</label>
+          <input
+            type='color'
+            value={canvasBackgroundColor}
+            onChange={(e) => setCanvasBackgroundColor(e.target.value)}
+          />
+        </div>
+        <button
+          type='button'
+          className='p-2 rounded-md border border-black'
+          onClick={toggleEraserMode}
+        >
+          {eraserMode ? 'Exit Eraser Mode' : 'Eraser Mode'}
+        </button>
+        <div>
+          <label htmlFor='brush-size'>Brush size</label>
+          <input type='number' className='border border-black rounded-md' onChange={(e) => setBrushWidth(+e.target.value)} />
+        </div>
+      </div>
       <canvas
-  ref={canvasRef}
-  onMouseDown={onMouseDown}
-  width={750}
-  height={750}
-  className='border border-black rounded-md'
-  style={{ cursor: eraserMode ? 'cell' : 'crosshair' }} // Change cursor for eraser mode
-/>
+        ref={canvasRef}
+        onMouseDown={onMouseDown}
+        width={750}
+        height={750}
+        className='shadow-xl border'
+        style={{ cursor: eraserMode ? 'cell' : 'crosshair', backgroundColor: canvasBackgroundColor }}
+      />
     </div>
   );
 }
