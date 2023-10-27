@@ -9,7 +9,7 @@ const socket = io('http://localhost:3001'); // Update with your Vercel domain
 // const socket = io('http://collabography.vercel.app'); // Update with your Vercel domain
 
 export default function Page() {
-  const [canvasBackgroundColor, setCanvasBackgroundColor] = useState<string>('#000');
+  const [canvasBackgroundColor, setCanvasBackgroundColor] = useState<string>('#fff');
   const [eraserMode, setEraserMode] = useState(false);
   const [brushWidth, setBrushWidth] = useState<number>(5);
   const [color, setColor] = useState<string>('#000');
@@ -60,20 +60,21 @@ export default function Page() {
     drawLine({ prevPoint, currentPoint, ctx, color: lineColor, brushWidth });
   }
 
+
   return (
-    <div className='w-screen h-screen bg-white flex justify-center items-center'>
-      <div className='flex flex-col gap-10 pr-10'>
+    <div className='min-h-screen bg-white flex justify-center items-center'>
+      <div className='flex flex-col space-y-10 pr-10'>
         <ChromePicker color={color} onChange={(e) => setColor(e.hex)} />
         <button
           type='button'
-          className='p-2 rounded-md border border-black'
+          className='px-4 py-2 rounded-md border border-black'
           onClick={() => socket.emit('clear')}>
           Clear canvas
         </button>
       </div>
-      <div className='flex flex-col gap-14'>
+      <div className='flex flex-col space-y-14'>
         <div>
-          <label htmlFor='color'>Choose canvas bg color</label>
+          <label htmlFor='color' className='text-lg'>Choose canvas bg color</label>
           <input
             type='color'
             value={canvasBackgroundColor}
@@ -82,14 +83,14 @@ export default function Page() {
         </div>
         <button
           type='button'
-          className='p-2 rounded-md border border-black'
+          className='px-4 py-2 rounded-md border border-black'
           onClick={toggleEraserMode}
         >
           {eraserMode ? 'Exit Eraser Mode' : 'Eraser Mode'}
         </button>
         <div>
-          <label htmlFor='brush-size'>Brush size</label>
-          <input type='number' className='border border-black rounded-md' onChange={(e) => setBrushWidth(+e.target.value)} />
+          <label htmlFor='brush-size' className='text-lg'>Brush size</label>
+          <input type='number' className='px-4 py-2 border border-black rounded-md' onChange={(e) => setBrushWidth(+e.target.value)} />
         </div>
       </div>
       <canvas
