@@ -8,13 +8,18 @@ import { drawLine } from '../utils/drawLine';
 const socket = io('http://localhost:3001'); // Update with your Vercel domain
 // const socket = io('http://collabography.vercel.app'); // Update with your Vercel domain
 
-
-
 export default function Page() {
+  const [eraserMode, setEraserMode] = useState(false);
   const [brushWidth, setBrushWidth] = useState<number>(5);
   const [color, setColor] = useState<string>('#000');
   const { canvasRef, onMouseDown, clear } = useDraw(createLine);
 
+
+  const toggleEraserMode = () => {
+    setEraserMode(!eraserMode);
+  };
+
+  
   useEffect(() => {
     const ctx = canvasRef.current?.getContext('2d');
 
@@ -51,8 +56,9 @@ export default function Page() {
   }, [canvasRef, clear]);
 
   function createLine({ prevPoint, currentPoint, ctx }: Draw) {
-    socket.emit('draw-line', { prevPoint, currentPoint, color, brushWidth });
-    drawLine({ prevPoint, currentPoint, ctx, color, brushWidth });
+    const lineColor = eraserMode ? 'white' : color; // Use white as the eraser color
+    socket.emit('draw-line', { prevPoint, currentPoint, color: lineColor, brushWidth });
+    drawLine({ prevPoint, currentPoint, ctx, color: lineColor, brushWidth });
   }
 
   return (
@@ -66,15 +72,23 @@ export default function Page() {
           Clear canvas
         </button>
       </div>
+      <button
+  type='button'
+  className='p-2 rounded-md border border-black'
+  onClick={toggleEraserMode}
+>
+  {eraserMode ? 'Exit Eraser Mode' : 'Eraser Mode'}
+</button>
       <label htmlFor='brush-size'>Brush size</label>
       <input type='number' className='border border-black rounded-md' onChange={(e) => setBrushWidth(+e.target.value)} />
       <canvas
-        ref={canvasRef}
-        onMouseDown={onMouseDown}
-        width={750}
-        height={750}
-        className='border border-black rounded-md'
-      />
+  ref={canvasRef}
+  onMouseDown={onMouseDown}
+  width={750}
+  height={750}
+  className='border border-black rounded-md'
+  style={{ cursor: eraserMode ? 'cell' : 'crosshair' }} // Change cursor for eraser mode
+/>
     </div>
   );
 }
