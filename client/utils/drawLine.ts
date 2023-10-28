@@ -1,19 +1,22 @@
-type drawLineProps = Draw & {
+type Draw = {
+  prevPoint: Point | null;
+  currentPoint: Point;
+  ctx: CanvasRenderingContext2D | null;
+};
+
+type Point = { x: number; y: number };
+
+type DrawLineProps = Draw & {
   color: string;
   brushWidth: number;
 };
 
-export const drawLine = ({
-  prevPoint,
-  currentPoint,
-  ctx,
-  color,
-  brushWidth,
-}: drawLineProps) => {
+export const drawLine = ({ prevPoint, currentPoint, ctx, color, brushWidth }: DrawLineProps) => {
+  if (!ctx) return;
   const { x: currX, y: currY } = currentPoint;
   const lineColor = color;
 
-  let startPoint = prevPoint ?? currentPoint;
+  let startPoint = prevPoint || currentPoint;
   ctx.beginPath();
   ctx.lineWidth = brushWidth;
   ctx.strokeStyle = lineColor;

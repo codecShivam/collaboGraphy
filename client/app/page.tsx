@@ -1,5 +1,6 @@
 'use client';
-import React, { FC, useEffect, useState } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { useDraw } from '../hooks/useDraw';
 import { ChromePicker } from 'react-color';
 import { io } from 'socket.io-client';
@@ -14,6 +15,8 @@ export default function Page() {
   const [brushWidth, setBrushWidth] = useState<number>(5);
   const [color, setColor] = useState<string>('#000');
   const { canvasRef, onMouseDown, clear } = useDraw(createLine);
+  const [drawingHistory, setDrawingHistory] = useState<DrawLineProps[]>([]);
+  const [currentStep, setCurrentStep] = useState(-1);
 
   const toggleEraserMode = () => {
     setEraserMode(!eraserMode);
@@ -39,9 +42,11 @@ export default function Page() {
       };
     });
 
-    socket.on('draw-line', ({ prevPoint, currentPoint, color, brushWidth }: DrawLineProps) => {
+    socket.on('draw-line', (action: DrawLineProps) => {
       if (!ctx) return console.log('no ctx here');
-      drawLine({ prevPoint, currentPoint, ctx, color, brushWidth });
+      drawLine({ prevPoint: action.prevPoint, currentPoint: action.currentPoint, ctx, color: action.color, brushWidth: action.brushWidth });
+      setDrawingHistory((history) => [...history, action]);
+      setCurrentStep((step) => step + 1);
     });
 
     socket.on('clear', clear);
@@ -56,8 +61,48 @@ export default function Page() {
 
   function createLine({ prevPoint, currentPoint, ctx }: Draw) {
     const lineColor = eraserMode ? canvasBackgroundColor : color;
-    socket.emit('draw-line', { prevPoint, currentPoint, color: lineColor, brushWidth });
-    drawLine({ prevPoint, currentPoint, ctx, color: lineColor, brushWidth });
+    if (ctx) { // Check if ctx is not null or undefined
+      const action: DrawLineProps = { prevPoint, currentPoint, color: lineColor, brushWidth };
+      socket.emit('draw-line', action);
+      drawLine({ prevPoint, currentPoint, ctx, color: lineColor, brushWidth });
+      setDrawingHistory((history) => {
+        const newHistory = history.slice(0, currentStep + 1);
+        newHistory.push(action);
+        return newHistory;
+      });
+      setCurrentStep((step) => step + 1);
+    }
+  }
+
+  function undo() {
+    if (currentStep > 0) {
+      setCurrentStep((step) => step - 1);
+      clearCanvas();
+      redrawHistory();
+    }
+  }
+
+  function redo() {
+    if (currentStep < drawingHistory.length - 1) {
+      setCurrentStep((step) => step + 1);
+      const action = drawingHistory[currentStep + 1];
+      const ctx = canvasRef.current?.getContext('2d') as CanvasRenderingContext2D; // Type assertion
+      drawLine({ prevPoint: action.prevPoint, currentPoint: action.currentPoint, ctx, color: action.color, brushWidth: action.brushWidth });
+    }
+  }
+
+  function clearCanvas() {
+    const ctx = canvasRef.current?.getContext('2d');
+    ctx?.clearRect(0, 0, canvasRef.current?.width || 0, canvasRef.current?.height || 0);
+  }
+
+  function redrawHistory() {
+    for (let i = 0; i <= currentStep; i++) {
+      const ctx = canvasRef.current?.getContext('2d') as CanvasRenderingContext2D; // Type assertion
+      const action = drawingHistory[i];
+      if(action)
+      drawLine({ prevPoint: action.prevPoint, currentPoint: action.currentPoint, ctx, color: action.color, brushWidth: action.brushWidth });
+    }
   }
 
 
@@ -92,6 +137,14 @@ export default function Page() {
           <label htmlFor='brush-size' className='text-lg'>Brush size</label>
           <input type='number' className='px-4 py-2 border border-black rounded-md' onChange={(e) => setBrushWidth(+e.target.value)} />
         </div>
+      </div>
+      <div>
+        <button type='button' onClick={undo}>
+          Undo
+        </button>
+        <button type='button' onClick={redo}>
+          Redo
+        </button>
       </div>
       <canvas
         ref={canvasRef}
