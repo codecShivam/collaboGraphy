@@ -1,13 +1,11 @@
-'use client';
-
+'use client'
 import React, { useEffect, useState } from 'react';
 import { useDraw } from '../hooks/useDraw';
 import { ChromePicker } from 'react-color';
 import { io } from 'socket.io-client';
 import { drawLine } from '../utils/drawLine';
 
-const socket = io('http://localhost:3001'); // Update with your Vercel domain
-// const socket = io('http://collabography.vercel.app'); // Update with your Vercel domain
+const socket = io('http://localhost:3001');
 
 export default function Page() {
   const [canvasBackgroundColor, setCanvasBackgroundColor] = useState<string>('#fff');
@@ -15,12 +13,34 @@ export default function Page() {
   const [brushWidth, setBrushWidth] = useState<number>(5);
   const [color, setColor] = useState<string>('#000');
   const { canvasRef, onMouseDown, clear } = useDraw(createLine);
-  const [drawingHistory, setDrawingHistory] = useState<DrawLineProps[]>([]);
+  const [strokeHistory, setStrokeHistory] = useState<DrawLineProps[][]>([]);
+  const [currentStroke, setCurrentStroke] = useState<DrawLineProps[]>([]);
   const [currentStep, setCurrentStep] = useState(-1);
 
   const toggleEraserMode = () => {
     setEraserMode(!eraserMode);
   };
+
+  function createLine({ prevPoint, currentPoint, ctx }: Draw) {
+    const lineColor = eraserMode ? canvasBackgroundColor : color;
+    if (ctx) {
+      const action: DrawLineProps = { prevPoint, currentPoint, color: lineColor, brushWidth };
+      const newStroke = [...currentStroke, action];
+      setCurrentStroke(newStroke);
+      drawLine({ prevPoint, currentPoint, ctx, color: lineColor, brushWidth });
+      socket.emit('draw-line', action); // Emit the draw event to the server
+    }
+  }
+
+  function saveCurrentStroke() {
+    if (currentStroke.length > 0) {
+      const newHistory = [...strokeHistory, currentStroke];
+      setStrokeHistory(newHistory);
+      setCurrentStroke([]);
+      setCurrentStep(newHistory.length);
+      socket.emit('canvas-state', canvasRef.current?.toDataURL()); // Emit the canvas state to the server
+    }
+  }
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext('2d');
@@ -44,67 +64,79 @@ export default function Page() {
 
     socket.on('draw-line', (action: DrawLineProps) => {
       if (!ctx) return console.log('no ctx here');
-      drawLine({ prevPoint: action.prevPoint, currentPoint: action.currentPoint, ctx, color: action.color, brushWidth: action.brushWidth });
-      setDrawingHistory((history) => [...history, action]);
+      drawLine({
+        prevPoint: action.prevPoint,
+        currentPoint: action.currentPoint,
+        ctx,
+        color: action.color,
+        brushWidth: action.brushWidth,
+      });
+      setStrokeHistory((history: any) => [...history, action]);
       setCurrentStep((step) => step + 1);
     });
 
-    socket.on('clear', clear);
+    socket.on('clear', () => {
+      clearCanvas();
+      setStrokeHistory([]); 
+      setCurrentStep(-1);
+    });
+
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.addEventListener('mouseup', saveCurrentStroke);
+    }
 
     return () => {
       socket.off('draw-line');
       socket.off('get-canvas-state');
       socket.off('canvas-state-from-server');
       socket.off('clear');
+      if (canvas) {
+        canvas.removeEventListener('mouseup', saveCurrentStroke);
+      }
     };
   }, [canvasRef, clear]);
 
-  function createLine({ prevPoint, currentPoint, ctx }: Draw) {
-    const lineColor = eraserMode ? canvasBackgroundColor : color;
-    if (ctx) { // Check if ctx is not null or undefined
-      const action: DrawLineProps = { prevPoint, currentPoint, color: lineColor, brushWidth };
-      socket.emit('draw-line', action);
-      drawLine({ prevPoint, currentPoint, ctx, color: lineColor, brushWidth });
-      setDrawingHistory((history) => {
-        const newHistory = history.slice(0, currentStep + 1);
-        newHistory.push(action);
-        return newHistory;
-      });
-      setCurrentStep((step) => step + 1);
-    }
-  }
-
   function undo() {
     if (currentStep > 0) {
-      setCurrentStep((step) => step - 1);
-      clearCanvas();
-      redrawHistory();
+      const newStep = currentStep - 1;
+      setCurrentStep(newStep);
+      redrawHistory(newStep);
     }
   }
 
   function redo() {
-    if (currentStep < drawingHistory.length - 1) {
-      setCurrentStep((step) => step + 1);
-      const action = drawingHistory[currentStep + 1];
-      const ctx = canvasRef.current?.getContext('2d') as CanvasRenderingContext2D; // Type assertion
-      drawLine({ prevPoint: action.prevPoint, currentPoint: action.currentPoint, ctx, color: action.color, brushWidth: action.brushWidth });
+    if (currentStep < strokeHistory.length) {
+      const newStep = currentStep + 1;
+      setCurrentStep(newStep);
+      redrawHistory(newStep);
+    }
+  }
+
+  function redrawHistory(step: number) {
+    clearCanvas();
+    for (let i = 0; i < step; i++) {
+      const actions = strokeHistory[i];
+      if (actions) {
+        actions.forEach((action) => {
+          const ctx = canvasRef.current?.getContext('2d') as CanvasRenderingContext2D;
+          drawLine({
+            prevPoint: action.prevPoint,
+            currentPoint: action.currentPoint,
+            ctx,
+            color: action.color,
+            brushWidth: action.brushWidth,
+          });
+        });
+      }
     }
   }
 
   function clearCanvas() {
     const ctx = canvasRef.current?.getContext('2d');
     ctx?.clearRect(0, 0, canvasRef.current?.width || 0, canvasRef.current?.height || 0);
+    socket.emit('clear'); // Emit a clear event to the server
   }
-
-  function redrawHistory() {
-    for (let i = 0; i <= currentStep; i++) {
-      const ctx = canvasRef.current?.getContext('2d') as CanvasRenderingContext2D; // Type assertion
-      const action = drawingHistory[i];
-      if(action)
-      drawLine({ prevPoint: action.prevPoint, currentPoint: action.currentPoint, ctx, color: action.color, brushWidth: action.brushWidth });
-    }
-  }
-
 
   return (
     <div className='min-h-screen bg-white flex justify-center items-center'>
@@ -119,22 +151,22 @@ export default function Page() {
       </div>
       <div className='flex flex-col space-y-14'>
         <div>
-          <label htmlFor='color' className='text-lg'>Choose canvas bg color</label>
+          <label htmlFor='color' className='text-lg'>
+            Choose canvas bg color
+          </label>
           <input
             type='color'
             value={canvasBackgroundColor}
             onChange={(e) => setCanvasBackgroundColor(e.target.value)}
           />
         </div>
-        <button
-          type='button'
-          className='px-4 py-2 rounded-md border border-black'
-          onClick={toggleEraserMode}
-        >
+        <button type='button' className='px-4 py-2 rounded-md border border-black' onClick={toggleEraserMode}>
           {eraserMode ? 'Exit Eraser Mode' : 'Eraser Mode'}
         </button>
         <div>
-          <label htmlFor='brush-size' className='text-lg'>Brush size</label>
+          <label htmlFor='brush-size' className='text-lg'>
+            Brush size
+          </label>
           <input type='number' className='px-4 py-2 border border-black rounded-md' onChange={(e) => setBrushWidth(+e.target.value)} />
         </div>
       </div>
