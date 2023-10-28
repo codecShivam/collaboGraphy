@@ -77,7 +77,7 @@ export default function Page() {
 
     socket.on('clear', () => {
       clearCanvas();
-      setStrokeHistory([]); 
+      setStrokeHistory([]);
       setCurrentStep(-1);
     });
 
@@ -139,53 +139,74 @@ export default function Page() {
   }
 
   return (
-    <div className='min-h-screen bg-white flex justify-center items-center'>
-      <div className='flex flex-col space-y-10 pr-10'>
-        <ChromePicker color={color} onChange={(e) => setColor(e.hex)} />
-        <button
-          type='button'
-          className='px-4 py-2 rounded-md border border-black'
-          onClick={() => socket.emit('clear')}>
-          Clear canvas
-        </button>
-      </div>
-      <div className='flex flex-col space-y-14'>
-        <div>
-          <label htmlFor='color' className='text-lg'>
-            Choose canvas bg color
-          </label>
-          <input
-            type='color'
-            value={canvasBackgroundColor}
-            onChange={(e) => setCanvasBackgroundColor(e.target.value)}
-          />
+    <div>
+      <div className='min-h-screen bg-white flex flex-row items-center justify-center'>
+        <div className='flex flex-col space-y-6 pr-6'>
+          <ChromePicker color={color} onChange={(e) => setColor(e.hex)} />
+          <button
+            type='button'
+            className='px-4 py-2 rounded-md border border-black'
+            onClick={() => socket.emit('clear')}
+          >
+            Clear Canvas
+          </button>
         </div>
-        <button type='button' className='px-4 py-2 rounded-md border border-black' onClick={toggleEraserMode}>
-          {eraserMode ? 'Exit Eraser Mode' : 'Eraser Mode'}
-        </button>
-        <div>
-          <label htmlFor='brush-size' className='text-lg'>
-            Brush size
-          </label>
-          <input type='number' className='px-4 py-2 border border-black rounded-md' onChange={(e) => setBrushWidth(+e.target.value)} />
+
+        <div className='flex flex-col space-y-4'>
+          <div className="flex flex-col space-y-2">
+            <label htmlFor='canvas-background-color' className='text-lg'>
+              Choose Canvas Background Color
+            </label>
+            <input
+              type='color'
+              value={canvasBackgroundColor}
+              onChange={(e) => setCanvasBackgroundColor(e.target.value)}
+            />
+          </div>
+
+          <button
+            type='button'
+            className='px-4 py-2 rounded-md border border-black'
+            onClick={toggleEraserMode}
+          >
+            {eraserMode ? 'Exit Eraser Mode' : 'Eraser Mode'}
+          </button>
+
+          <div className="flex flex-col space-y-2">
+            <label htmlFor='brush-size' className='text-lg'>
+              Brush Size
+            </label>
+            <input
+              type='number'
+              className='px-4 py-2 border border-black rounded-md'
+              onChange={(e) => setBrushWidth(+e.target.value)}
+            />
+          </div>
         </div>
+
+        <div className="flex flex-col space-y-4">
+          <button type='button' onClick={undo}>
+            Undo
+          </button>
+
+          <button type='button' onClick={redo}>
+            Redo
+          </button>
+        </div>
+
+
+        <canvas
+          ref={canvasRef}
+          onMouseDown={onMouseDown}
+          width={750}
+          height={750}
+          className='shadow-xl border mt-4'
+          style={{
+            cursor: eraserMode ? 'cell' : 'crosshair',
+            backgroundColor: canvasBackgroundColor
+          }}
+        />
       </div>
-      <div>
-        <button type='button' onClick={undo}>
-          Undo
-        </button>
-        <button type='button' onClick={redo}>
-          Redo
-        </button>
-      </div>
-      <canvas
-        ref={canvasRef}
-        onMouseDown={onMouseDown}
-        width={750}
-        height={750}
-        className='shadow-xl border'
-        style={{ cursor: eraserMode ? 'cell' : 'crosshair', backgroundColor: canvasBackgroundColor }}
-      />
     </div>
   );
 }
